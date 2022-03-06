@@ -1,6 +1,7 @@
 from builtins import range
 from builtins import object
 import numpy as np
+import cupy as cp
 
 from cs231n.layers import *
 from cs231n.layer_utils import *
@@ -48,8 +49,11 @@ class TwoLayerNet(object):
         # weights and biases using the keys 'W2' and 'b2'.                         #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
+        
+        self.params['W1']=np.random.normal(0, weight_scale, (input_dim, hidden_dim))
+        self.params['W2']=np.random.normal(0, weight_scale, (hidden_dim, num_classes))
+        self.params['b1']=np.zeros(hidden_dim)
+        self.params['b2']=np.zeros(num_classes)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -83,7 +87,9 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        out1, cache_h1=affine_relu_forward(X, self.params['W1'], self.params['b1'])
+        scores, cache_out=affine_forward(out1, self.params['W2'], self.params['b2'])
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -107,7 +113,24 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        #calculate loss
+        loss, grads_scores = softmax_loss(scores, y)
+        loss+=.5*self.reg*(np.sum(self.params['W1']*self.params['W1'])
+                          +np.sum(self.params['W2']*self.params['W2']))
+
+
+        #compute gradients
+        dldx2, dldw2, dldb2=affine_backward(grads_scores, cache_out)
+
+        dldh=relu_backward(dldx2, cache_h1[1])
+
+        dldx1, dldw1, dldb1=affine_backward(dldh, cache_h1[0])
+
+        #assign grads and apply regularization
+        grads['W1']=dldw1+self.reg*self.params['W1']
+        grads['b1']=dldb1
+        grads['W2']=dldw2+self.reg*self.params['W2']
+        grads['b2']=dldb2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -178,7 +201,17 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        in_size=input_dim
+        for i in range(1, self.num_layers):
+            out_size=hidden_dims[i-1]
+            self.params['W'+str(i)]=np.random.normal(0, weight_scale, (in_size, out_size))
+            self.params['b'+str(i)]=np.random.normal(0, weight_scale, out_size)
+            if normalization is not None:
+                self.params['gamma' + str(i)]=np.ones(out_size)
+                self.params['beta' + str(i)]=np.zeros(out_size)
+            in_size=out_size
+        self.params['W'+str(self.num_layers)]=np.random.normal(0, weight_scale, (out_size, num_classes))
+        self.params['b'+str(self.num_layers)]=np.random.normal(0, weight_scale, num_classes)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -241,7 +274,29 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        cache=[]
+        input_mat=X
+        for i in range(1, self.num_layers):
+            output, cache_a=affine_forward(input_mat, self.params['W'+str(i)], self.params['b'+str(i)])
+            
+            cache_bn=None
+            if self.normalization is not None:
+                output, cache_bn=batchnorm_forward(output,
+                                                   self.params['gamma'+str(i)],
+                                                   self.params['beta'+str(i)],
+                                                   self.bn_params[i-1])
+            output, cache_r=relu_forward(output)
+
+            cache_d=None
+            if self.use_dropout:
+                output, cache_d=dropout_forward(output, self.dropout_param)
+
+            cache.append((cache_a, cache_bn, cache_r, cache_d))
+            input_mat=output
+
+        scores, cache_out=affine_forward(output, 
+                                         self.params['W'+str(self.num_layers)],
+                                         self.params['b'+str(self.num_layers)])
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -268,7 +323,32 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        loss, dloss=softmax_loss(scores, y)
+
+        for i in range(1, self.num_layers+1):
+            w=self.params['W'+str(i)]
+            loss+=.5*self.reg*np.sum(w*w)
+
+        upstream, dw, db=affine_backward(dloss, cache_out)
+        grads['W'+str(self.num_layers)]=dw+self.reg*self.params['W'+str(self.num_layers)]
+        grads['b'+str(self.num_layers)]=db
+
+        for i in range(self.num_layers-1, 0, -1):
+            cache_a, cache_bn, cache_r, cache_d=cache[i-1]
+
+            if cache_d is not None:
+                upstream=dropout_backward(upstream, cache_d)
+
+            upstream=relu_backward(upstream, cache_r)
+
+            if cache_bn is not None:
+                upstream, dg, db=batchnorm_backward(upstream, cache_bn)
+                grads['gamma'+str(i)]=dg
+                grads['beta'+str(i)]=db
+
+            upstream, dw, db=affine_backward(upstream, cache_a)
+            grads['W'+str(i)]=dw+self.reg*self.params['W'+str(i)]
+            grads['b'+str(i)]=db
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################

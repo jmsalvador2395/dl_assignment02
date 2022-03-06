@@ -7,6 +7,7 @@ import os
 import pickle as pickle
 
 import numpy as np
+import cupy as cp
 
 from cs231n import optim
 

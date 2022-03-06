@@ -1,5 +1,6 @@
 from builtins import range
 import numpy as np
+import cupy as cp
 
 
 def affine_forward(x, w, b):
@@ -129,13 +130,8 @@ def relu_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    def indicator(x):
-        res=np.sign(x)
-        res[res<=0]=0
-        return res
-
-    dx=indicator(x)
-    dx=dout*dx
+    dx=dout
+    dx[x<0]=0
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -215,7 +211,15 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        mu_b=np.mean(x, axis=0, keepdims=True)
+        var_b=np.var(x, axis=0, keepdims=True)
+        x_hat=(x-mu_b)/np.sqrt(var_b+eps)
+        out=gamma*x_hat+beta
+
+        running_mean=momentum*running_mean+(1-momentum)*mu_b
+        running_var=momentum*running_var+(1-momentum)*var_b
+
+        cache=(mu_b, var_b, x_hat, x, gamma, beta, eps)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -230,7 +234,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        x_hat=(x-running_mean)/np.sqrt(eps+running_var)
+        out=gamma*x_hat+beta
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -271,8 +276,27 @@ def batchnorm_backward(dout, cache):
     # might prove to be helpful.                                              #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    mu_b, var_b, x_hat, x, gamma, beta, eps=cache
 
-    pass
+    m=x.shape[0]
+    
+    dgamma=np.sum(dout*x_hat, axis=0, keepdims=True)
+    dbeta=np.sum(dout, axis=0, keepdims=True)
+
+    d_xhat=dout*gamma
+    d_var=np.sum(d_xhat*(-.5)*(x-mu_b)*np.power(var_b+eps, -(3/2.)), axis=0, keepdims=True)
+
+    d_mu_dxhat=np.sum(d_xhat*(-1/np.sqrt(var_b+eps)), axis=0, keepdims=True)
+    d_mu_dvar=d_var*(np.mean(-2*x_hat-mu_b, axis=0, keepdims=True))
+    d_mu=d_mu_dxhat+d_mu_dvar
+
+    dx_dxhat=d_xhat/np.sqrt(var_b+eps)
+    dx_dvar=d_var*2*(x_hat-mu_b)/m
+    dx_dmub=d_mu/m
+
+    dx=dx_dxhat+dx_dvar+dx_dmub
+
+    print(dx)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -437,7 +461,8 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        mask=(np.random.rand(*x.shape)<p)/p
+        out=x*mask
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -449,7 +474,7 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        out=x
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -480,7 +505,7 @@ def dropout_backward(dout, cache):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        dx=dout*mask
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
