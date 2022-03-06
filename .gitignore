@@ -7,3 +7,4 @@ env/*
 
 # gitignore the built release.
 assignment3/*
+*.log
