@@ -37,10 +37,11 @@ def sgd(w, dw, config=None):
     config format:
     - learning_rate: Scalar learning rate.
     """
-    if config is None: config = {}
-    config.setdefault('learning_rate', 1e-2)
+    if config is None:
+        config = {}
+    config.setdefault("learning_rate", 1e-2)
 
-    w -= config['learning_rate'] * dw
+    w -= config["learning_rate"] * dw
     return w, config
 
 
@@ -55,10 +56,11 @@ def sgd_momentum(w, dw, config=None):
     - velocity: A numpy array of the same shape as w and dw used to store a
       moving average of the gradients.
     """
-    if config is None: config = {}
-    config.setdefault('learning_rate', 1e-2)
-    config.setdefault('momentum', 0.9)
-    v = config.get('velocity', np.zeros_like(w))
+    if config is None:
+        config = {}
+    config.setdefault("learning_rate", 1e-2)
+    config.setdefault("momentum", 0.9)
+    v = config.get("velocity", np.zeros_like(w))
 
     next_w = None
     ###########################################################################
@@ -67,17 +69,15 @@ def sgd_momentum(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    v=config['momentum']*v-config['learning_rate']*dw
-    next_w=w+v
+    pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    config['velocity'] = v
+    config["velocity"] = v
 
     return next_w, config
-
 
 
 def rmsprop(w, dw, config=None):
@@ -92,11 +92,12 @@ def rmsprop(w, dw, config=None):
     - epsilon: Small scalar used for smoothing to avoid dividing by zero.
     - cache: Moving average of second moments of gradients.
     """
-    if config is None: config = {}
-    config.setdefault('learning_rate', 1e-2)
-    config.setdefault('decay_rate', 0.99)
-    config.setdefault('epsilon', 1e-8)
-    config.setdefault('cache', np.zeros_like(w))
+    if config is None:
+        config = {}
+    config.setdefault("learning_rate", 1e-2)
+    config.setdefault("decay_rate", 0.99)
+    config.setdefault("epsilon", 1e-8)
+    config.setdefault("cache", np.zeros_like(w))
 
     next_w = None
     ###########################################################################
@@ -105,9 +106,8 @@ def rmsprop(w, dw, config=None):
     # config['cache'].                                                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    
-    config['cache']=config['decay_rate']*config['cache']+(1-config['decay_rate'])*dw*dw
-    next_w=w-config['learning_rate']*dw/(np.sqrt(config['cache'])+config['epsilon'])
+
+    pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -131,14 +131,15 @@ def adam(w, dw, config=None):
     - v: Moving average of squared gradient.
     - t: Iteration number.
     """
-    if config is None: config = {}
-    config.setdefault('learning_rate', 1e-3)
-    config.setdefault('beta1', 0.9)
-    config.setdefault('beta2', 0.999)
-    config.setdefault('epsilon', 1e-8)
-    config.setdefault('m', np.zeros_like(w))
-    config.setdefault('v', np.zeros_like(w))
-    config.setdefault('t', 0)
+    if config is None:
+        config = {}
+    config.setdefault("learning_rate", 1e-3)
+    config.setdefault("beta1", 0.9)
+    config.setdefault("beta2", 0.999)
+    config.setdefault("epsilon", 1e-8)
+    config.setdefault("m", np.zeros_like(w))
+    config.setdefault("v", np.zeros_like(w))
+    config.setdefault("t", 0)
 
     next_w = None
     ###########################################################################
@@ -150,22 +151,8 @@ def adam(w, dw, config=None):
     # using it in any calculations.                                           #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    
-    first_moment=config['m']
-    second_moment=config['v']
-    beta1=config['beta1']
-    beta2=config['beta2']
-    t=config['t']
-    lr=config['learning_rate']
-    epsilon=config['epsilon']
 
-    first_moment=beta1*first_moment+(1-beta1)*dw
-    second_moment=beta2*second_moment+(1-beta2)*dw*dw
-    
-    next_w=w-lr*first_moment/(np.sqrt(second_moment)+epsilon)
-
-    config['m']=first_moment
-    config['v']=second_moment
+    pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
